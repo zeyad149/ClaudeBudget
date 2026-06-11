@@ -111,6 +111,7 @@ html, body {
 }
 .chip .emoji { margin-right: 5px; }
 .chip.active { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.chip-add { border-style: dashed; color: var(--muted); }
 
 .keypad {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;

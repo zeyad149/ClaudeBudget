@@ -1,6 +1,6 @@
 /* ClaudeBudget service worker — caches the app shell so it opens instantly
  * and works fully offline. Bump CACHE when you change any cached file. */
-const CACHE = "claudebudget-v2";
+const CACHE = "claudebudget-v3";
 const ASSETS = [
   "./",
   "./index.html",

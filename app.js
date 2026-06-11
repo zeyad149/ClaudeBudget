@@ -127,6 +127,34 @@
       };
       row.appendChild(b);
     });
+    // "+ New" chip — create a category on the fly
+    const addChip = document.createElement("button");
+    addChip.className = "chip chip-add";
+    addChip.innerHTML = `<span class="emoji">＋</span>New`;
+    addChip.onclick = () => {
+      const name = addCategory();
+      if (name) { add.category = name; add._userPicked = true; }
+      renderChips();
+    };
+    row.appendChild(addChip);
+  }
+
+  // Create a new category (used from the Add screen and Settings). Returns the
+  // category name, or null if cancelled. Persists to the saved category list.
+  function addCategory() {
+    const name = (prompt("New category name (e.g. Travel, Rent, Coffee):") || "").trim();
+    if (!name) return null;
+    const existing = state.categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (existing) { toast("That category already exists"); return existing.name; }
+    let emoji = (prompt("Pick an emoji for it (optional):", "🏷️") || "").trim();
+    emoji = Array.from(emoji)[0] || "🏷️"; // keep just the first character
+    const cat = { name, emoji, keywords: [] };
+    const otherIdx = state.categories.findIndex((c) => c.name === "Other");
+    if (otherIdx >= 0) state.categories.splice(otherIdx, 0, cat); // keep "Other" last
+    else state.categories.push(cat);
+    save();
+    toast(`Added "${name}"`);
+    return name;
   }
 
   function onNoteInput() {
@@ -496,6 +524,7 @@
     $("#push-all").onclick = pushAll;
     $("#export-csv").onclick = exportCsv;
     $("#wipe").onclick = wipe;
+    $("#add-category").onclick = () => { if (addCategory()) renderCatEditor(); };
 
     renderAmount();
     renderChips();
