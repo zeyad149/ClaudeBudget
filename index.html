@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <title>ClaudeBudget</title>
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <!-- iOS home-screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Budget" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main id="app">
+    <!-- ====================== ADD VIEW ====================== -->
+    <section class="view" id="view-add">
+      <header class="topbar">
+        <h1>Add</h1>
+        <span class="sync-pill" id="sync-pill" title="Sync status">●</span>
+      </header>
+
+      <div class="type-toggle" role="tablist">
+        <button class="type-btn active" data-type="expense">Expense</button>
+        <button class="type-btn" data-type="income">Income</button>
+      </div>
+
+      <div class="amount-display">
+        <span class="currency" id="currency-symbol">AED</span>
+        <span class="amount" id="amount">0</span>
+      </div>
+
+      <input type="text" id="note" class="note-input" placeholder="What was it? (e.g. Carrefour, padel, petrol)" autocomplete="off" />
+
+      <div class="cat-row" id="cat-row"><!-- category chips injected --></div>
+
+      <div class="keypad" id="keypad">
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+        <button data-k=".">.</button><button data-k="0">0</button>
+        <button data-k="del" class="key-del">⌫</button>
+      </div>
+
+      <button class="save-btn" id="save-btn">Save</button>
+    </section>
+
+    <!-- ====================== MONTH VIEW ====================== -->
+    <section class="view hidden" id="view-month">
+      <header class="topbar">
+        <button class="nav-arrow" id="prev-month">‹</button>
+        <h1 id="month-label">Month</h1>
+        <button class="nav-arrow" id="next-month">›</button>
+      </header>
+
+      <div class="summary">
+        <div class="sum-card income"><span>Income</span><strong id="sum-income">0</strong></div>
+        <div class="sum-card expense"><span>Spent</span><strong id="sum-expense">0</strong></div>
+        <div class="sum-card net"><span>Net</span><strong id="sum-net">0</strong></div>
+      </div>
+
+      <div class="breakdown" id="breakdown"><!-- category bars --></div>
+
+      <h2 class="section-title">Transactions</h2>
+      <div class="tx-list" id="tx-list"><!-- transactions --></div>
+    </section>
+
+    <!-- ====================== SETTINGS VIEW ====================== -->
+    <section class="view hidden" id="view-settings">
+      <header class="topbar"><h1>Settings</h1></header>
+
+      <div class="setting-block">
+        <label>Currency</label>
+        <input type="text" id="set-currency" maxlength="4" />
+      </div>
+
+      <div class="setting-block">
+        <label>Google Sheets sync URL</label>
+        <input type="text" id="set-sync-url" placeholder="Paste your Apps Script /exec URL" autocomplete="off" />
+        <p class="hint">Leave blank to keep everything on this phone only. See README for the 2-minute setup.</p>
+        <div class="btn-row">
+          <button class="ghost-btn" id="test-sync">Test sync</button>
+          <button class="ghost-btn" id="push-all">Push all to Sheet</button>
+        </div>
+        <p class="hint" id="sync-msg"></p>
+      </div>
+
+      <div class="setting-block">
+        <label>Data</label>
+        <div class="btn-row">
+          <button class="ghost-btn" id="export-csv">Export CSV</button>
+          <button class="ghost-btn danger" id="wipe">Erase all data</button>
+        </div>
+        <p class="hint"><span id="tx-count">0</span> transactions stored on this device.</p>
+      </div>
+
+      <div class="setting-block">
+        <label>Categories &amp; auto-rules</label>
+        <p class="hint">The app guesses a category from your note using these keywords. Tap to edit.</p>
+        <div id="cat-editor"></div>
+      </div>
+
+      <p class="version">ClaudeBudget · offline-first PWA</p>
+    </section>
+  </main>
+
+  <!-- ====================== BOTTOM NAV ====================== -->
+  <nav class="tabbar">
+    <button class="tab active" data-view="add">＋<span>Add</span></button>
+    <button class="tab" data-view="month">▦<span>Month</span></button>
+    <button class="tab" data-view="settings">⚙<span>Settings</span></button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
