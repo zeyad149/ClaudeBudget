@@ -26,6 +26,7 @@
     settings: { currency: "AED", syncUrl: "" },
     categories: DEFAULT_CATEGORIES,
     transactions: [],
+    startingBalances: {}, // { "YYYY-MM": amount } — money on hand at the start of that month
   };
 
   // ---------------- State ----------------
@@ -41,6 +42,7 @@
         settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) },
         categories: parsed.categories && parsed.categories.length ? parsed.categories : structuredClone(DEFAULT_CATEGORIES),
         transactions: parsed.transactions || [],
+        startingBalances: parsed.startingBalances || {},
       };
     } catch (e) {
       console.error("load failed", e);
@@ -179,12 +181,52 @@
   function startOfMonth(d) {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   }
-  function monthKey(d) {
-    return `${d.getFullYear()}-${d.getMonth()}`;
+  function ymKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  function monthName(d) {
+    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
   function inMonth(iso, m) {
     const d = new Date(iso);
     return d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth();
+  }
+
+  // ---- Starting balance (money on hand at the start of a month) ----
+  function getStartingBalance(monthDate) {
+    return state.startingBalances[ymKey(monthDate)];
+  }
+
+  function setStartingBalance(monthDate, amount) {
+    const key = ymKey(monthDate);
+    state.startingBalances[key] = Math.round(amount * 100) / 100;
+    save();
+    if (state.settings.syncUrl) postToSheet({ action: "balance", month: key, amount: state.startingBalances[key] });
+    renderReminder();
+    renderMonth();
+  }
+
+  function editStartingBalance(monthDate) {
+    const cur = getStartingBalance(monthDate);
+    const v = prompt(`Starting balance for ${monthName(monthDate)} (${state.settings.currency}) — how much did you have at the start of the month?`, cur != null ? cur : "");
+    if (v === null) return;
+    const n = parseFloat(v);
+    if (isNaN(n)) { toast("Please enter a number"); return; }
+    setStartingBalance(monthDate, n);
+    toast("Starting balance saved");
+  }
+
+  // Nags on the Add screen each new month until the balance is entered.
+  function renderReminder() {
+    const el = $("#balance-reminder");
+    if (!el) return;
+    const now = startOfMonth(new Date());
+    if (getStartingBalance(now) == null) {
+      el.classList.remove("hidden");
+      $("#reminder-month").textContent = monthName(now);
+    } else {
+      el.classList.add("hidden");
+    }
   }
 
   function renderMonth() {
@@ -204,6 +246,20 @@
     $("#sum-expense").textContent = fmt(expense);
     $("#sum-net").textContent = fmt(income - expense);
     $("#sum-net").style.color = income - expense >= 0 ? "var(--green)" : "var(--red)";
+
+    // starting balance + money left
+    const start = getStartingBalance(viewMonth);
+    const cur = state.settings.currency;
+    const left = (start || 0) + income - expense;
+    $("#bh-left").textContent = `${cur} ${fmt(left)}`;
+    $("#bh-left").style.color = left >= 0 ? "var(--text)" : "var(--red)";
+    if (start == null) {
+      $("#bh-start").textContent = "Tap to set starting balance";
+      $("#balance-hero").classList.add("unset");
+    } else {
+      $("#bh-start").textContent = `Started with ${cur} ${fmt(start)}`;
+      $("#balance-hero").classList.remove("unset");
+    }
 
     // breakdown
     const bd = $("#breakdown");
@@ -317,6 +373,10 @@
       const ok = await postToSheet({ action: "upsert", tx });
       if (ok) { tx.synced = true; done++; }
     }
+    // also (re)send every starting balance so the Monthly tab is complete
+    for (const [month, amount] of Object.entries(state.startingBalances)) {
+      await postToSheet({ action: "balance", month, amount });
+    }
     save();
     setPill();
     $("#sync-msg").textContent = `Pushed ${done}/${unsynced.length}.`;
@@ -402,7 +462,7 @@
     $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.view === name));
     if (name === "month") renderMonth();
     if (name === "settings") renderSettings();
-    if (name === "add") { renderAmount(); renderChips(); }
+    if (name === "add") { renderAmount(); renderChips(); renderReminder(); }
     window.scrollTo(0, 0);
   }
 
@@ -422,6 +482,10 @@
     $("#prev-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1); renderMonth(); };
     $("#next-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1); renderMonth(); };
 
+    // starting balance
+    $("#balance-hero").onclick = () => editStartingBalance(viewMonth);
+    $("#balance-reminder").onclick = () => editStartingBalance(startOfMonth(new Date()));
+
     // tabs
     $$(".tab").forEach((t) => (t.onclick = () => showView(t.dataset.view)));
 
@@ -437,6 +501,7 @@
     renderChips();
     setType("expense");
     setPill();
+    renderReminder();
 
     // retry pending syncs whenever we come back online
     window.addEventListener("online", () => { if (state.settings.syncUrl) pushAll(); });

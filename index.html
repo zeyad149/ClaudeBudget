@@ -23,6 +23,11 @@
         <span class="sync-pill" id="sync-pill" title="Sync status">●</span>
       </header>
 
+      <button class="reminder hidden" id="balance-reminder">
+        <span>💡 Set your starting balance for <strong id="reminder-month">this month</strong></span>
+        <span class="reminder-go">Add →</span>
+      </button>
+
       <div class="type-toggle" role="tablist">
         <button class="type-btn active" data-type="expense">Expense</button>
         <button class="type-btn" data-type="income">Income</button>
@@ -55,6 +60,12 @@
         <h1 id="month-label">Month</h1>
         <button class="nav-arrow" id="next-month">›</button>
       </header>
+
+      <button class="balance-hero" id="balance-hero">
+        <span class="bh-label">Money left</span>
+        <strong class="bh-amount" id="bh-left">0</strong>
+        <span class="bh-start" id="bh-start">Tap to set starting balance</span>
+      </button>
 
       <div class="summary">
         <div class="sum-card income"><span>Income</span><strong id="sum-income">0</strong></div>

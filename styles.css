@@ -56,6 +56,26 @@ html, body {
   width: 40px; height: 40px; border-radius: 12px; font-size: 24px; line-height: 1;
 }
 
+/* ---------- Starting-balance reminder + hero ---------- */
+.reminder {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: rgba(245, 158, 11, .12); border: 1px solid rgba(245, 158, 11, .45);
+  color: #fcd34d; padding: 13px 15px; border-radius: 14px; margin-bottom: 16px;
+  font-size: 14px; font-weight: 600; text-align: left;
+}
+.reminder.hidden { display: none; }
+.reminder strong { color: #fde68a; }
+.reminder-go { color: var(--amber); white-space: nowrap; }
+
+.balance-hero {
+  width: 100%; text-align: center; background: linear-gradient(135deg, var(--indigo), var(--teal));
+  border: none; border-radius: var(--radius); padding: 20px 16px; margin-bottom: 14px; color: #fff;
+}
+.balance-hero .bh-label { display: block; font-size: 13px; opacity: .85; text-transform: uppercase; letter-spacing: .06em; }
+.balance-hero .bh-amount { display: block; font-size: 36px; font-weight: 800; margin: 6px 0 4px; letter-spacing: -0.02em; }
+.balance-hero .bh-start { display: block; font-size: 13px; opacity: .9; }
+.balance-hero.unset .bh-start { text-decoration: underline; opacity: 1; }
+
 /* ---------- Add view ---------- */
 .type-toggle {
   display: flex; background: var(--card); border-radius: 14px; padding: 4px; margin-bottom: 18px;
