@@ -61,11 +61,12 @@
         <button class="nav-arrow" id="next-month">›</button>
       </header>
 
-      <button class="balance-hero" id="balance-hero">
+      <div class="balance-hero" id="balance-hero">
+        <button class="bh-eye" id="toggle-balance" aria-label="Hide or show balance">👁</button>
         <span class="bh-label">Money left</span>
         <strong class="bh-amount" id="bh-left">0</strong>
         <span class="bh-start" id="bh-start">Tap to set starting balance</span>
-      </button>
+      </div>
 
       <div class="summary">
         <div class="sum-card income"><span>Income</span><strong id="sum-income">0</strong></div>
@@ -106,6 +107,16 @@
           <button class="ghost-btn danger" id="wipe">Erase all data</button>
         </div>
         <p class="hint"><span id="tx-count">0</span> transactions stored on this device.</p>
+      </div>
+
+      <div class="setting-block">
+        <label>Balance privacy</label>
+        <p class="hint">Use the 👁 eye on the Month tab to hide your "Money left" and starting balance when showing your phone to someone. Hiding is instant; revealing again asks for this password.</p>
+        <div class="btn-row">
+          <button class="ghost-btn" id="set-pass">Set / change password</button>
+          <button class="ghost-btn danger" id="clear-pass">Remove password</button>
+        </div>
+        <p class="hint" id="pass-status"></p>
       </div>
 
       <div class="setting-block">

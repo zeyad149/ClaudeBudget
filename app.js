@@ -23,10 +23,11 @@
   ];
 
   const DEFAULT_STATE = {
-    settings: { currency: "AED", syncUrl: "" },
+    settings: { currency: "AED", syncUrl: "", balancePass: "" },
     categories: DEFAULT_CATEGORIES,
     transactions: [],
     startingBalances: {}, // { "YYYY-MM": amount } — money on hand at the start of that month
+    balanceHidden: false, // privacy: hide "Money left" + starting balance on screen
   };
 
   // ---------------- State ----------------
@@ -43,6 +44,7 @@
         categories: parsed.categories && parsed.categories.length ? parsed.categories : structuredClone(DEFAULT_CATEGORIES),
         transactions: parsed.transactions || [],
         startingBalances: parsed.startingBalances || {},
+        balanceHidden: parsed.balanceHidden || false,
       };
     } catch (e) {
       console.error("load failed", e);
@@ -60,6 +62,14 @@
 
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  // Light, non-reversible hash so the privacy password isn't stored in plain
+  // text. This is a casual over-the-shoulder guard, not cryptographic security.
+  function hashPass(s) {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return String(h);
   }
 
   function fmt(n) {
@@ -244,6 +254,36 @@
     toast("Starting balance saved");
   }
 
+  // ---- Balance privacy (hide is free; revealing needs the password) ----
+  function toggleBalanceVisibility() {
+    if (state.balanceHidden) revealBalance();
+    else hideBalance();
+  }
+
+  function hideBalance() {
+    if (!state.settings.balancePass) {
+      const p = prompt("Create a password — you'll need it to reveal the balance again:");
+      if (!p) { toast("Hide cancelled — set a password first"); return; }
+      state.settings.balancePass = hashPass(p);
+    }
+    state.balanceHidden = true;
+    save();
+    renderMonth();
+    toast("Balance hidden 🙈");
+  }
+
+  function revealBalance() {
+    if (state.settings.balancePass) {
+      const p = prompt("Enter your password to reveal the balance:");
+      if (p === null) return;
+      if (hashPass(p) !== state.settings.balancePass) { toast("Wrong password"); return; }
+    }
+    state.balanceHidden = false;
+    save();
+    renderMonth();
+    toast("Balance shown");
+  }
+
   // Nags on the Add screen each new month until the balance is entered.
   function renderReminder() {
     const el = $("#balance-reminder");
@@ -279,14 +319,22 @@
     const start = getStartingBalance(viewMonth);
     const cur = state.settings.currency;
     const left = (start || 0) + income - expense;
-    $("#bh-left").textContent = `${cur} ${fmt(left)}`;
-    $("#bh-left").style.color = left >= 0 ? "var(--text)" : "var(--red)";
-    if (start == null) {
-      $("#bh-start").textContent = "Tap to set starting balance";
-      $("#balance-hero").classList.add("unset");
-    } else {
-      $("#bh-start").textContent = `Started with ${cur} ${fmt(start)}`;
+    $("#toggle-balance").textContent = state.balanceHidden ? "🙈" : "👁";
+    if (state.balanceHidden) {
+      $("#bh-left").textContent = "••••••";
+      $("#bh-left").style.color = "var(--text)";
+      $("#bh-start").textContent = "Hidden — tap the eye to reveal";
       $("#balance-hero").classList.remove("unset");
+    } else {
+      $("#bh-left").textContent = `${cur} ${fmt(left)}`;
+      $("#bh-left").style.color = left >= 0 ? "var(--text)" : "var(--red)";
+      if (start == null) {
+        $("#bh-start").textContent = "Tap to set starting balance";
+        $("#balance-hero").classList.add("unset");
+      } else {
+        $("#bh-start").textContent = `Started with ${cur} ${fmt(start)}`;
+        $("#balance-hero").classList.remove("unset");
+      }
     }
 
     // breakdown
@@ -434,6 +482,34 @@
 
   function updateSettingsCounts() {
     $("#tx-count").textContent = state.transactions.length;
+    const ps = $("#pass-status");
+    if (ps) ps.textContent = state.settings.balancePass ? "🔒 Password is set." : "No password set yet.";
+  }
+
+  function setPassword() {
+    if (state.settings.balancePass) {
+      const cur = prompt("Enter your current password:");
+      if (cur === null) return;
+      if (hashPass(cur) !== state.settings.balancePass) { toast("Wrong password"); return; }
+    }
+    const p = prompt("Enter a new balance password:");
+    if (!p) { toast("Password unchanged"); return; }
+    state.settings.balancePass = hashPass(p);
+    save();
+    updateSettingsCounts();
+    toast("Password set 🔒");
+  }
+
+  function clearPassword() {
+    if (!state.settings.balancePass) { toast("No password set"); return; }
+    const cur = prompt("Enter your current password to remove it:");
+    if (cur === null) return;
+    if (hashPass(cur) !== state.settings.balancePass) { toast("Wrong password"); return; }
+    state.settings.balancePass = "";
+    state.balanceHidden = false; // nothing left to protect
+    save();
+    updateSettingsCounts();
+    toast("Password removed");
   }
 
   function renderCatEditor() {
@@ -511,7 +587,11 @@
     $("#next-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1); renderMonth(); };
 
     // starting balance
-    $("#balance-hero").onclick = () => editStartingBalance(viewMonth);
+    $("#balance-hero").onclick = () => {
+      if (state.balanceHidden) revealBalance();
+      else editStartingBalance(viewMonth);
+    };
+    $("#toggle-balance").onclick = (e) => { e.stopPropagation(); toggleBalanceVisibility(); };
     $("#balance-reminder").onclick = () => editStartingBalance(startOfMonth(new Date()));
 
     // tabs
@@ -525,6 +605,8 @@
     $("#export-csv").onclick = exportCsv;
     $("#wipe").onclick = wipe;
     $("#add-category").onclick = () => { if (addCategory()) renderCatEditor(); };
+    $("#set-pass").onclick = setPassword;
+    $("#clear-pass").onclick = clearPassword;
 
     renderAmount();
     renderChips();
