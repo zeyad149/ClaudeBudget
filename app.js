@@ -215,6 +215,7 @@
 
   // ---------------- Month view ----------------
   let viewMonth = startOfMonth(new Date());
+  let dashSel = null; // Compare view: { "YYYY-MM": "A" | "B" }
 
   function startOfMonth(d) {
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -399,6 +400,128 @@
     return (s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  // ---------------- Compare view ----------------
+  function ymFromIso(iso) { return ymKey(new Date(iso)); }
+  function ymToDate(key) { const [y, m] = key.split("-").map(Number); return new Date(y, m - 1, 1); }
+  function ymShort(key) { return ymToDate(key).toLocaleDateString("en-US", { month: "short", year: "2-digit" }); }
+  function ymLong(key) { return ymToDate(key).toLocaleDateString("en-US", { month: "long", year: "numeric" }); }
+
+  function monthsWithData() {
+    const set = {};
+    state.transactions.forEach((t) => { set[ymFromIso(t.date)] = true; });
+    return Object.keys(set).sort().reverse();
+  }
+
+  function aggregateMonths(keys) {
+    const set = new Set(keys);
+    let income = 0, spent = 0;
+    const byCat = {};
+    state.transactions.forEach((t) => {
+      if (!set.has(ymFromIso(t.date))) return;
+      if (t.type === "income") income += t.amount;
+      else { spent += t.amount; byCat[t.category] = (byCat[t.category] || 0) + t.amount; }
+    });
+    return { income, spent, net: income - spent, byCat, months: keys.length };
+  }
+
+  function groupLabel(keys) {
+    if (keys.length === 1) return ymLong(keys[0]);
+    return `${keys.length} months`;
+  }
+
+  function metricRow(label, a, b, lowerIsBetter) {
+    const cur = state.settings.currency;
+    const diff = a - b;
+    const pct = b !== 0 ? (diff / Math.abs(b)) * 100 : (a !== 0 ? 100 : 0);
+    const arrow = diff === 0 ? "–" : diff > 0 ? "▲" : "▼";
+    const good = diff === 0 ? "flat" : (lowerIsBetter ? diff < 0 : diff > 0) ? "good" : "bad";
+    return `<div class="cmp-row">
+      <div class="cmp-label">${label}</div>
+      <div class="cmp-a">${cur} ${fmt(a)}</div>
+      <div class="cmp-b">${cur} ${fmt(b)}</div>
+      <div class="cmp-delta ${good}">${arrow} ${Math.abs(pct).toFixed(0)}%</div>
+    </div>`;
+  }
+
+  function renderCompare() {
+    const months = monthsWithData();
+    const grid = $("#cmp-months");
+    const body = $("#cmp-body");
+
+    if (dashSel === null) { // first open: default to the two most recent months
+      dashSel = {};
+      if (months[0]) dashSel[months[0]] = "A";
+      if (months[1]) dashSel[months[1]] = "B";
+    }
+    Object.keys(dashSel).forEach((k) => { if (!months.includes(k)) delete dashSel[k]; });
+
+    if (!months.length) {
+      grid.innerHTML = "";
+      body.innerHTML = `<p class="empty">Add some transactions first, then come back to compare months.</p>`;
+      return;
+    }
+
+    // month chips
+    grid.innerHTML = "";
+    months.forEach((k) => {
+      const sel = dashSel[k];
+      const b = document.createElement("button");
+      b.className = "cmp-chip" + (sel === "A" ? " sel-a" : sel === "B" ? " sel-b" : "");
+      b.innerHTML = `${ymShort(k)}${sel ? `<span class="cmp-tag">${sel}</span>` : ""}`;
+      b.onclick = () => {
+        const next = sel === "A" ? "B" : sel === "B" ? null : "A";
+        if (next) dashSel[k] = next; else delete dashSel[k];
+        renderCompare();
+      };
+      grid.appendChild(b);
+    });
+
+    const aKeys = months.filter((k) => dashSel[k] === "A");
+    const bKeys = months.filter((k) => dashSel[k] === "B");
+    if (!aKeys.length || !bKeys.length) {
+      body.innerHTML = `<p class="empty">Pick at least one month for <b>A</b> and one for <b>B</b> to see the comparison.</p>`;
+      return;
+    }
+
+    const A = aggregateMonths(aKeys), B = aggregateMonths(bKeys);
+    const cur = state.settings.currency;
+
+    // per-category comparison, sorted by A's spend
+    const catNames = Array.from(new Set([...Object.keys(A.byCat), ...Object.keys(B.byCat)]));
+    const max = Math.max(1, ...catNames.map((n) => Math.max(A.byCat[n] || 0, B.byCat[n] || 0)));
+    catNames.sort((x, y) => (B.byCat[y] || 0) + (A.byCat[y] || 0) - (B.byCat[x] || 0) - (A.byCat[x] || 0));
+    const catHtml = catNames.map((n) => {
+      const c = catByName(n);
+      const a = A.byCat[n] || 0, b = B.byCat[n] || 0;
+      return `<div class="cmp-cat">
+        <div class="cc-head"><span>${c.emoji} ${n}</span><span class="cc-amt">${cur} ${fmt(a)} vs ${fmt(b)}</span></div>
+        <div class="cc-bars">
+          <div class="cc-bar a" style="width:${(a / max) * 100}%"></div>
+          <div class="cc-bar b" style="width:${(b / max) * 100}%"></div>
+        </div>
+      </div>`;
+    }).join("");
+
+    const avgNote = (aKeys.length > 1 || bKeys.length > 1)
+      ? `<p class="cmp-hint">Avg spend/month — <span class="cmp-a">A ${cur} ${fmt(A.spent / aKeys.length)}</span> · <span class="cmp-b">B ${cur} ${fmt(B.spent / bKeys.length)}</span></p>`
+      : "";
+
+    body.innerHTML = `
+      <div class="cmp-groups">
+        <div class="cmp-grp a"><span>Group A</span><strong>${groupLabel(aKeys)}</strong></div>
+        <div class="cmp-grp b"><span>Group B</span><strong>${groupLabel(bKeys)}</strong></div>
+      </div>
+      <div class="cmp-table">
+        <div class="cmp-row head"><div class="cmp-label">Total</div><div class="cmp-a">A</div><div class="cmp-b">B</div><div class="cmp-delta">Δ A→B</div></div>
+        ${metricRow("Income", A.income, B.income, false)}
+        ${metricRow("Spent", A.spent, B.spent, true)}
+        ${metricRow("Net", A.net, B.net, false)}
+      </div>
+      ${avgNote}
+      <h2 class="section-title">By category (A vs B)</h2>
+      ${catHtml || `<p class="empty">No spending in either group.</p>`}`;
+  }
+
   // ---------------- Sync (Google Sheets via Apps Script) ----------------
   // We POST as text/plain to avoid a CORS preflight. With no-cors we can't
   // read the response, so we treat a resolved fetch as success and keep a
@@ -565,6 +688,7 @@
     $(`#view-${name}`).classList.remove("hidden");
     $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.view === name));
     if (name === "month") renderMonth();
+    if (name === "compare") renderCompare();
     if (name === "settings") renderSettings();
     if (name === "add") { renderAmount(); renderChips(); renderReminder(); }
     window.scrollTo(0, 0);

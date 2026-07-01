@@ -197,6 +197,44 @@ html, body {
 }
 .version { text-align: center; color: var(--muted); font-size: 12px; margin-top: 24px; }
 
+/* ---------- Compare view ---------- */
+.cmp-months { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.cmp-chip {
+  background: var(--card); border: 1px solid var(--line); color: var(--text);
+  padding: 9px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;
+}
+.cmp-chip.sel-a { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.cmp-chip.sel-b { background: var(--teal); border-color: var(--teal); color: #fff; }
+.cmp-tag { margin-left: 6px; font-size: 11px; font-weight: 800; opacity: .9; }
+
+.cmp-groups { display: flex; gap: 10px; margin-bottom: 14px; }
+.cmp-grp { flex: 1; background: var(--card); border-radius: 14px; padding: 12px; text-align: center; }
+.cmp-grp span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 4px; }
+.cmp-grp strong { font-size: 15px; }
+.cmp-grp.a { border-top: 3px solid var(--indigo); }
+.cmp-grp.b { border-top: 3px solid var(--teal); }
+
+.cmp-table { background: var(--card); border-radius: 14px; padding: 4px 14px; margin-bottom: 14px; }
+.cmp-row { display: grid; grid-template-columns: 1.05fr 1fr 1fr 0.85fr; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.cmp-row:last-child { border-bottom: none; }
+.cmp-row.head { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.cmp-label { font-weight: 600; }
+.cmp-a { color: var(--indigo-soft); font-weight: 700; font-variant-numeric: tabular-nums; }
+.cmp-b { color: #2dd4bf; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cmp-delta { text-align: right; font-weight: 700; font-size: 13px; }
+.cmp-delta.good { color: var(--green); }
+.cmp-delta.bad { color: var(--red); }
+.cmp-delta.flat { color: var(--muted); }
+.cmp-hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+
+.cmp-cat { background: var(--card); border-radius: 12px; padding: 11px 13px; margin-bottom: 8px; }
+.cc-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.cc-head .cc-amt { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.cc-bars { display: flex; flex-direction: column; gap: 4px; }
+.cc-bar { height: 7px; border-radius: 99px; min-width: 2px; }
+.cc-bar.a { background: var(--indigo); }
+.cc-bar.b { background: #2dd4bf; }
+
 /* ---------- Tabbar ---------- */
 .tabbar {
   position: fixed; bottom: 0; left: 0; right: 0; max-width: 520px; margin: 0 auto;

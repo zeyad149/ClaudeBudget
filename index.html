@@ -81,6 +81,14 @@
       <div class="tx-list" id="tx-list"><!-- transactions --></div>
     </section>
 
+    <!-- ====================== COMPARE VIEW ====================== -->
+    <section class="view hidden" id="view-compare">
+      <header class="topbar"><h1>Compare</h1></header>
+      <p class="section-title">Tap a month → <b>A</b>, tap again → <b>B</b>, again to clear</p>
+      <div class="cmp-months" id="cmp-months"></div>
+      <div id="cmp-body"></div>
+    </section>
+
     <!-- ====================== SETTINGS VIEW ====================== -->
     <section class="view hidden" id="view-settings">
       <header class="topbar"><h1>Settings</h1></header>
@@ -137,6 +145,7 @@
   <nav class="tabbar">
     <button class="tab active" data-view="add">＋<span>Add</span></button>
     <button class="tab" data-view="month">▦<span>Month</span></button>
+    <button class="tab" data-view="compare">📊<span>Compare</span></button>
     <button class="tab" data-view="settings">⚙<span>Settings</span></button>
   </nav>
 
