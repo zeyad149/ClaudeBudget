@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: backdate-entries -->
+<!-- build: backdate-entries-v2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Budget" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=7" />
 </head>
 <body>
   <main id="app">
@@ -39,13 +39,18 @@
         <span class="amount" id="amount">0</span>
       </div>
 
-      <div class="date-row">
-        <label class="date-pill" id="date-pill">
-          <span id="date-label">📅 Today</span>
-          <input type="date" id="entry-date" aria-label="Date of this entry" />
+      <div class="date-row" id="date-row">
+        <button class="date-chip" data-day="0">Today</button>
+        <button class="date-chip" data-day="1">Yesterday</button>
+        <label class="date-chip date-pick" id="date-pick">
+          <span id="date-pick-label">📅 Earlier…</span>
+          <input type="date" id="entry-date" aria-label="Pick the date of this entry" />
         </label>
-        <button class="date-reset hidden" id="date-reset">Back to today</button>
       </div>
+      <button class="backdate-banner hidden" id="backdate-banner">
+        <span>↩ Adding to <strong id="backdate-month">September</strong></span>
+        <span class="backdate-x">Back to today ✕</span>
+      </button>
 
       <input type="text" id="note" class="note-input" placeholder="What was it? (e.g. Carrefour, padel, petrol)" autocomplete="off" />
 
@@ -159,6 +164,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="./app.js"></script>
+  <script src="./app.js?v=7"></script>
 </body>
 </html>

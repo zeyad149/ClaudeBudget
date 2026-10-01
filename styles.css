@@ -102,24 +102,29 @@ html, body {
 .amount { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; }
 
 .date-row {
-  display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 14px;
+  display: flex; justify-content: center; gap: 8px; margin: 4px 0 14px;
 }
-.date-pill {
-  position: relative; display: inline-flex; align-items: center;
+.date-chip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
   background: var(--card); border: 1px solid var(--line); color: var(--muted);
   padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600;
+  font-family: inherit; white-space: nowrap; transition: .15s;
 }
-.date-pill.past { color: var(--amber); border-color: var(--amber); background: rgba(245, 158, 11, 0.12); }
-/* the native date input sits invisibly on top so tapping opens the system picker */
-.date-pill input {
+.date-chip.active { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+/* the native date input sits invisibly over the chip so a tap opens the system picker */
+.date-pick input {
   position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0;
-  border: none; padding: 0; margin: 0; font-size: 16px;
+  border: none; padding: 0; margin: 0; font-size: 16px; -webkit-appearance: none; appearance: none;
 }
-.date-reset {
-  border: none; background: transparent; color: var(--indigo-soft);
-  font-size: 14px; font-weight: 600; padding: 8px 4px;
+
+.backdate-banner {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fde68a; padding: 11px 14px; border-radius: 14px; font-size: 14px;
+  font-family: inherit; text-align: left; margin-bottom: 14px;
 }
-.date-reset.hidden { display: none; }
+.backdate-banner.hidden { display: none; }
+.backdate-x { color: var(--amber); font-weight: 600; white-space: nowrap; }
 
 .note-input {
   width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--text);
@@ -156,6 +161,7 @@ html, body {
 }
 .save-btn:active { background: var(--indigo-soft); }
 .save-btn.income { background: var(--green); }
+.save-btn.past { background: var(--amber); color: #1f1300; }
 
 /* ---------- Month view ---------- */
 .summary { display: flex; gap: 10px; margin-bottom: 18px; }
