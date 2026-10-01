@@ -17,6 +17,10 @@ monthly **net** is always front and centre.
 - **3-second entry** — type the amount, tap a category, save. The app
   auto-suggests a category from your note (e.g. "Carrefour" → Groceries,
   "padel" → Padel/Sport, "ADNOC" → Fuel).
+- **Log things you forgot** — tap the 📅 date pill on the Add screen to pick
+  an earlier day (e.g. last month). It turns amber while you're backdating and
+  stays on that date so you can add several in a row; tap **Back to today**
+  when done.
 - **Monthly dashboard** — income vs spent vs net, a category breakdown with
   bars, and your full transaction history (tap ✕ to delete).
 - **Works offline** — everything is stored on your phone; it opens instantly

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: compare-dashboard -->
+<!-- build: backdate-entries -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -37,6 +37,14 @@
       <div class="amount-display">
         <span class="currency" id="currency-symbol">AED</span>
         <span class="amount" id="amount">0</span>
+      </div>
+
+      <div class="date-row">
+        <label class="date-pill" id="date-pill">
+          <span id="date-label">📅 Today</span>
+          <input type="date" id="entry-date" aria-label="Date of this entry" />
+        </label>
+        <button class="date-reset hidden" id="date-reset">Back to today</button>
       </div>
 
       <input type="text" id="note" class="note-input" placeholder="What was it? (e.g. Carrefour, padel, petrol)" autocomplete="off" />

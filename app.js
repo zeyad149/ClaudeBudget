@@ -100,7 +100,47 @@
   }
 
   // ---------------- Add view ----------------
-  const add = { amount: "0", type: "expense", category: null };
+  const add = { amount: "0", type: "expense", category: null, date: null }; // date: "YYYY-MM-DD", null = today
+
+  // ---- Entry date (lets you log something you forgot, e.g. last month) ----
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function renderDate() {
+    const input = $("#entry-date");
+    const today = todayStr();
+    input.max = today;
+    input.value = add.date || today;
+    const past = add.date && add.date !== today;
+    let label = "📅 Today";
+    if (past) {
+      const [y, m, d] = add.date.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const opts = { weekday: "short", day: "numeric", month: "short" };
+      if (y !== new Date().getFullYear()) opts.year = "numeric";
+      label = `📅 ${dt.toLocaleDateString("en-US", opts)}`;
+    }
+    $("#date-label").textContent = label;
+    $("#date-pill").classList.toggle("past", !!past);
+    $("#date-reset").classList.toggle("hidden", !past);
+  }
+
+  function onDateChange(e) {
+    const v = e.target.value;
+    // empty (cleared) or future dates fall back to today
+    add.date = v && v < todayStr() ? v : null;
+    renderDate();
+  }
+
+  // ISO timestamp for a new entry: now for today, local noon for a past day
+  // (noon keeps it safely inside that day/month whatever the timezone).
+  function entryIso() {
+    if (!add.date || add.date >= todayStr()) return new Date().toISOString();
+    const [y, m, d] = add.date.split("-").map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0).toISOString();
+  }
 
   function renderAmount() {
     $("#amount").textContent = add.amount === "" ? "0" : add.amount;
@@ -192,7 +232,7 @@
     const category = add.category || guessCategory(note) || "Other";
     const tx = {
       id: uid(),
-      date: new Date().toISOString(),
+      date: entryIso(),
       amount: Math.round(amt * 100) / 100,
       type: add.type,
       category,
@@ -203,14 +243,17 @@
     save();
     syncOne(tx);
 
-    // reset entry
+    // reset entry (the chosen date stays, so several forgotten entries
+    // from the same day can be added in a row)
     add.amount = "0";
     add.category = null;
     add._userPicked = false;
     $("#note").value = "";
     renderAmount();
     renderChips();
-    toast(`${tx.type === "income" ? "Income" : "Expense"} saved · ${state.settings.currency} ${fmt(tx.amount)}`);
+    const pastMonth = ymKey(new Date(tx.date)) !== ymKey(new Date());
+    toast(`${tx.type === "income" ? "Income" : "Expense"} saved · ${state.settings.currency} ${fmt(tx.amount)}` +
+      (pastMonth ? ` · ${monthName(new Date(tx.date))}` : ""));
   }
 
   // ---------------- Month view ----------------
@@ -300,7 +343,9 @@
 
   function renderMonth() {
     $("#month-label").textContent = viewMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    const txs = state.transactions.filter((t) => inMonth(t.date, viewMonth));
+    const txs = state.transactions
+      .filter((t) => inMonth(t.date, viewMonth))
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // backdated entries land in the right spot
 
     let income = 0, expense = 0;
     const byCat = {};
@@ -690,7 +735,7 @@
     if (name === "month") renderMonth();
     if (name === "compare") renderCompare();
     if (name === "settings") renderSettings();
-    if (name === "add") { renderAmount(); renderChips(); renderReminder(); }
+    if (name === "add") { renderAmount(); renderChips(); renderDate(); renderReminder(); }
     window.scrollTo(0, 0);
   }
 
@@ -705,6 +750,8 @@
     $$(".type-btn").forEach((b) => (b.onclick = () => setType(b.dataset.type)));
     $("#note").addEventListener("input", onNoteInput);
     $("#save-btn").onclick = saveEntry;
+    $("#entry-date").addEventListener("change", onDateChange);
+    $("#date-reset").onclick = () => { add.date = null; renderDate(); };
 
     // month nav
     $("#prev-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1); renderMonth(); };
@@ -734,6 +781,7 @@
 
     renderAmount();
     renderChips();
+    renderDate();
     setType("expense");
     setPill();
     renderReminder();
