@@ -108,30 +108,53 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
-  function renderDate() {
-    const input = $("#entry-date");
-    const today = todayStr();
-    input.max = today;
-    input.value = add.date || today;
-    const past = add.date && add.date !== today;
-    let label = "📅 Today";
-    if (past) {
-      const [y, m, d] = add.date.split("-").map(Number);
-      const dt = new Date(y, m - 1, d);
-      const opts = { weekday: "short", day: "numeric", month: "short" };
-      if (y !== new Date().getFullYear()) opts.year = "numeric";
-      label = `📅 ${dt.toLocaleDateString("en-US", opts)}`;
-    }
-    $("#date-label").textContent = label;
-    $("#date-pill").classList.toggle("past", !!past);
-    $("#date-reset").classList.toggle("hidden", !past);
+  function dayStr(daysAgo) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
-  function onDateChange(e) {
-    const v = e.target.value;
-    // empty (cleared) or future dates fall back to today
-    add.date = v && v < todayStr() ? v : null;
+  function parseDay(str) {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  // The native picker is the source of truth. iOS doesn't always fire
+  // "change" before the Save tap lands, so we also read it directly on save.
+  function readPicker() {
+    const v = $("#entry-date").value;
+    add.date = v && v < todayStr() ? v : null; // empty or future → today
+  }
+
+  function setDate(str) {
+    add.date = str && str < todayStr() ? str : null;
     renderDate();
+  }
+
+  function renderDate() {
+    const today = todayStr(), yest = dayStr(1);
+    const input = $("#entry-date");
+    input.max = today;
+    input.value = add.date || today;
+
+    const cur = add.date || today;
+    $$(".date-chip[data-day]").forEach((c) => {
+      c.classList.toggle("active", cur === dayStr(Number(c.dataset.day)));
+    });
+    const earlier = cur !== today && cur !== yest;
+    $("#date-pick").classList.toggle("active", earlier);
+    const opts = { weekday: "short", day: "numeric", month: "short" };
+    if (earlier && parseDay(cur).getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+    $("#date-pick-label").textContent = earlier ? `📅 ${parseDay(cur).toLocaleDateString("en-US", opts)}` : "📅 Earlier…";
+
+    // a clear heads-up when the entry will land in a previous month
+    const otherMonth = cur.slice(0, 7) !== today.slice(0, 7);
+    $("#backdate-banner").classList.toggle("hidden", !otherMonth);
+    $("#backdate-month").textContent = parseDay(cur).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+    const btn = $("#save-btn");
+    btn.textContent = add.date ? `Save to ${parseDay(cur).toLocaleDateString("en-US", { day: "numeric", month: "short" })}` : "Save";
+    btn.classList.toggle("past", otherMonth);
   }
 
   // ISO timestamp for a new entry: now for today, local noon for a past day
@@ -230,6 +253,7 @@
     }
     const note = $("#note").value.trim();
     const category = add.category || guessCategory(note) || "Other";
+    readPicker();
     const tx = {
       id: uid(),
       date: entryIso(),
@@ -750,8 +774,9 @@
     $$(".type-btn").forEach((b) => (b.onclick = () => setType(b.dataset.type)));
     $("#note").addEventListener("input", onNoteInput);
     $("#save-btn").onclick = saveEntry;
-    $("#entry-date").addEventListener("change", onDateChange);
-    $("#date-reset").onclick = () => { add.date = null; renderDate(); };
+    ["input", "change", "blur"].forEach((ev) => $("#entry-date").addEventListener(ev, () => { readPicker(); renderDate(); }));
+    $$(".date-chip[data-day]").forEach((c) => (c.onclick = () => setDate(dayStr(Number(c.dataset.day)))));
+    $("#backdate-banner").onclick = () => setDate(null);
 
     // month nav
     $("#prev-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1); renderMonth(); };
