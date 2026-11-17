@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: backdate-entries-v2 -->
+<!-- build: income-clients -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Budget" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=7" />
+  <link rel="stylesheet" href="./styles.css?v=8" />
 </head>
 <body>
   <main id="app">
@@ -52,6 +52,11 @@
         <span class="backdate-x">Back to today ✕</span>
       </button>
 
+      <div class="client-block hidden" id="client-block">
+        <input type="text" id="client" class="note-input client-input" placeholder="Client name (e.g. Ahmed, Acme LLC)" autocomplete="off" />
+        <div class="cat-row" id="client-row"><!-- recent clients injected --></div>
+      </div>
+
       <input type="text" id="note" class="note-input" placeholder="What was it? (e.g. Carrefour, padel, petrol)" autocomplete="off" />
 
       <div class="cat-row" id="cat-row"><!-- category chips injected --></div>
@@ -88,9 +93,16 @@
         <div class="sum-card net"><span>Net</span><strong id="sum-net">0</strong></div>
       </div>
 
+      <div class="seg" id="month-filter" role="tablist">
+        <button class="seg-btn active" data-f="all">All</button>
+        <button class="seg-btn" data-f="expense">Expenses</button>
+        <button class="seg-btn" data-f="income">Income</button>
+      </div>
+
+      <h2 class="section-title" id="breakdown-title">Spending by category</h2>
       <div class="breakdown" id="breakdown"><!-- category bars --></div>
 
-      <h2 class="section-title">Transactions</h2>
+      <h2 class="section-title" id="tx-title">Transactions</h2>
       <div class="tx-list" id="tx-list"><!-- transactions --></div>
     </section>
 
@@ -164,6 +176,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="./app.js?v=7"></script>
+  <script src="./app.js?v=8"></script>
 </body>
 </html>
