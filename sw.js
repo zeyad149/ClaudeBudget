@@ -1,11 +1,11 @@
 /* ClaudeBudget service worker — caches the app shell so it opens instantly
  * and works fully offline. Bump CACHE when you change any cached file. */
-const CACHE = "claudebudget-v7";
+const CACHE = "claudebudget-v8";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=7",
-  "./app.js?v=7",
+  "./styles.css?v=8",
+  "./app.js?v=8",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

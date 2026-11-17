@@ -21,6 +21,10 @@ monthly **net** is always front and centre.
   an earlier day (e.g. last month). It turns amber while you're backdating and
   stays on that date so you can add several in a row; tap **Back to today**
   when done.
+- **Income by client** — switch to **Income** on the Add screen and type a
+  client name (recent clients appear as one-tap buttons) plus what it was
+  for. On the Month tab, tap **Income** to see every payment with its date
+  and a total per client.
 - **Monthly dashboard** — income vs spent vs net, a category breakdown with
   bars, and your full transaction history (tap ✕ to delete).
 - **Works offline** — everything is stored on your phone; it opens instantly

@@ -230,7 +230,48 @@
     return name;
   }
 
+  // ---- Income: client names instead of spending categories ----
+  // Income entries store the client name in `category`, so it shows up as-is
+  // in the Google Sheet and CSV without any new columns.
+  // Income saved without a client (or before clients existed, under an
+  // expense category like "Business") has no real client name.
+  function clientOf(t) {
+    const n = (t.category || "").trim();
+    if (!n || n === "Income" || state.categories.some((c) => c.name === n)) return null;
+    return n;
+  }
+
+  function recentClients() {
+    const seen = new Set();
+    const out = [];
+    state.transactions
+      .filter((t) => t.type === "income")
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .forEach((t) => {
+        const n = clientOf(t);
+        if (!n) return;
+        const k = n.toLowerCase();
+        if (n && !seen.has(k)) { seen.add(k); out.push(n); }
+      });
+    return out.slice(0, 12);
+  }
+
+  function renderClients() {
+    const row = $("#client-row");
+    const typed = $("#client").value.trim().toLowerCase();
+    row.innerHTML = "";
+    recentClients().forEach((name) => {
+      const b = document.createElement("button");
+      b.className = "chip" + (typed === name.toLowerCase() ? " active income" : "");
+      b.innerHTML = `<span class="emoji">👤</span>${escapeHtml(name)}`;
+      b.onclick = () => { $("#client").value = name; renderClients(); };
+      row.appendChild(b);
+    });
+    row.classList.toggle("hidden", !row.children.length);
+  }
+
   function onNoteInput() {
+    if (add.type === "income") return; // income uses client names, not categories
     if (add._userPicked) return; // don't override a manual choice
     const g = guessCategory($("#note").value);
     if (g && g !== add.category) {
@@ -243,6 +284,13 @@
     add.type = type;
     $$(".type-btn").forEach((b) => b.classList.toggle("active", b.dataset.type === type));
     $("#save-btn").classList.toggle("income", type === "income");
+    const inc = type === "income";
+    $("#client-block").classList.toggle("hidden", !inc);
+    $("#cat-row").classList.toggle("hidden", inc);
+    $("#note").placeholder = inc
+      ? "What was it for? (e.g. logo design, March retainer)"
+      : "What was it? (e.g. Carrefour, padel, petrol)";
+    if (inc) renderClients();
   }
 
   function saveEntry() {
@@ -252,7 +300,10 @@
       return;
     }
     const note = $("#note").value.trim();
-    const category = add.category || guessCategory(note) || "Other";
+    const client = $("#client").value.trim();
+    const category = add.type === "income"
+      ? client || "Income"
+      : add.category || guessCategory(note) || "Other";
     readPicker();
     const tx = {
       id: uid(),
@@ -273,15 +324,18 @@
     add.category = null;
     add._userPicked = false;
     $("#note").value = "";
+    $("#client").value = "";
     renderAmount();
     renderChips();
+    renderClients();
     const pastMonth = ymKey(new Date(tx.date)) !== ymKey(new Date());
-    toast(`${tx.type === "income" ? "Income" : "Expense"} saved · ${state.settings.currency} ${fmt(tx.amount)}` +
+    toast(`${tx.type === "income" ? (clientOf(tx) ? `Income from ${tx.category}` : "Income") : "Expense"} saved · ${state.settings.currency} ${fmt(tx.amount)}` +
       (pastMonth ? ` · ${monthName(new Date(tx.date))}` : ""));
   }
 
   // ---------------- Month view ----------------
   let viewMonth = startOfMonth(new Date());
+  let monthFilter = "all"; // Month view list: "all" | "expense" | "income"
   let dashSel = null; // Compare view: { "YYYY-MM": "A" | "B" }
 
   function startOfMonth(d) {
@@ -372,13 +426,9 @@
       .sort((a, b) => new Date(b.date) - new Date(a.date)); // backdated entries land in the right spot
 
     let income = 0, expense = 0;
-    const byCat = {};
     txs.forEach((t) => {
       if (t.type === "income") income += t.amount;
-      else {
-        expense += t.amount;
-        byCat[t.category] = (byCat[t.category] || 0) + t.amount;
-      }
+      else expense += t.amount;
     });
     $("#sum-income").textContent = fmt(income);
     $("#sum-expense").textContent = fmt(expense);
@@ -407,22 +457,37 @@
       }
     }
 
-    // breakdown
+    // filter tabs
+    $$("#month-filter .seg-btn").forEach((b) => b.classList.toggle("active", b.dataset.f === monthFilter));
+    $$(".sum-card").forEach((c) => c.classList.toggle("selected",
+      (monthFilter === "income" && c.classList.contains("income")) ||
+      (monthFilter === "expense" && c.classList.contains("expense"))));
+
+    // breakdown: spending by category, or income by client
+    const showIncome = monthFilter === "income";
+    const groups = {};
+    txs.filter((t) => t.type === (showIncome ? "income" : "expense"))
+      .forEach((t) => {
+        const k = showIncome ? clientOf(t) || "Other income" : t.category;
+        groups[k] = (groups[k] || 0) + t.amount;
+      });
+    const total = showIncome ? income : expense;
+    $("#breakdown-title").textContent = showIncome ? "Income by client" : "Spending by category";
     const bd = $("#breakdown");
     bd.innerHTML = "";
-    const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
-    if (!cats.length) {
-      bd.innerHTML = `<p class="empty">No spending logged yet this month.</p>`;
+    const rows = Object.entries(groups).sort((a, b) => b[1] - a[1]);
+    if (!rows.length) {
+      bd.innerHTML = `<p class="empty">${showIncome ? "No income logged yet this month." : "No spending logged yet this month."}</p>`;
     } else {
-      cats.forEach(([name, amt]) => {
-        const c = catByName(name);
-        const pct = expense ? Math.round((amt / expense) * 100) : 0;
+      rows.forEach(([name, amt]) => {
+        const icon = showIncome ? (name === "Other income" ? "💰" : "👤") : catByName(name).emoji;
+        const pct = total ? Math.round((amt / total) * 100) : 0;
         const row = document.createElement("div");
-        row.className = "bd-row";
+        row.className = "bd-row" + (showIncome ? " income" : "");
         row.innerHTML = `
           <div class="bd-head">
-            <span>${c.emoji} ${name}</span>
-            <span><strong>${state.settings.currency} ${fmt(amt)}</strong> <span class="pct">${pct}%</span></span>
+            <span>${icon} ${escapeHtml(name)}</span>
+            <span><strong>${cur} ${fmt(amt)}</strong> <span class="pct">${pct}%</span></span>
           </div>
           <div class="bd-bar"><div style="width:${pct}%"></div></div>`;
         bd.appendChild(row);
@@ -430,24 +495,30 @@
     }
 
     // transactions
+    const shown = monthFilter === "all" ? txs : txs.filter((t) => t.type === monthFilter);
+    $("#tx-title").textContent = { all: "Transactions", expense: "Expenses", income: "Income" }[monthFilter] +
+      (monthFilter === "all" ? "" : ` · ${shown.length}`);
     const list = $("#tx-list");
     list.innerHTML = "";
-    if (!txs.length) {
-      list.innerHTML = `<p class="empty">Nothing here yet. Add your first entry on the Add tab.</p>`;
+    if (!shown.length) {
+      list.innerHTML = `<p class="empty">${monthFilter === "income" ? "No income this month yet. Switch to Income on the Add tab to log a payment." : "Nothing here yet. Add your first entry on the Add tab."}</p>`;
     } else {
-      txs.forEach((t) => {
-        const c = catByName(t.category);
+      shown.forEach((t) => {
         const d = new Date(t.date);
+        const isInc = t.type === "income";
+        const when = `${d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })}, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+        // income: client is the headline, note underneath; expenses unchanged
+        const title = isInc ? clientOf(t) || t.note || "Income" : (t.note || t.category);
+        const sub = isInc ? [clientOf(t) ? t.note : "", when].filter(Boolean).join(" · ") : `${t.category} · ${when}`;
         const row = document.createElement("div");
-        row.className = "tx";
-        const sign = t.type === "income" ? "+" : "−";
+        row.className = "tx" + (isInc ? " is-income" : "");
         row.innerHTML = `
-          <div class="tx-emoji">${c.emoji}</div>
+          <div class="tx-emoji">${isInc ? "💰" : catByName(t.category).emoji}</div>
           <div class="tx-main">
-            <div class="tx-note">${escapeHtml(t.note || t.category)}</div>
-            <div class="tx-sub">${t.category} · ${d.toLocaleDateString("en-US", { day: "numeric", month: "short" })}, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</div>
+            <div class="tx-note">${escapeHtml(title)}</div>
+            <div class="tx-sub">${escapeHtml(sub)}</div>
           </div>
-          <div class="tx-amt ${t.type}">${sign}${fmt(t.amount)}</div>
+          <div class="tx-amt ${t.type}">${isInc ? "+" : "−"}${fmt(t.amount)}</div>
           <button class="tx-del" aria-label="Delete">✕</button>`;
         row.querySelector(".tx-del").onclick = () => deleteTx(t.id);
         list.appendChild(row);
@@ -774,6 +845,13 @@
     $$(".type-btn").forEach((b) => (b.onclick = () => setType(b.dataset.type)));
     $("#note").addEventListener("input", onNoteInput);
     $("#save-btn").onclick = saveEntry;
+    $("#client").addEventListener("input", renderClients);
+
+    // Month view: All / Expenses / Income (the Income and Spent cards toggle too)
+    $$("#month-filter .seg-btn").forEach((b) => (b.onclick = () => { monthFilter = b.dataset.f; renderMonth(); }));
+    $(".sum-card.income").onclick = () => { monthFilter = monthFilter === "income" ? "all" : "income"; renderMonth(); };
+    $(".sum-card.expense").onclick = () => { monthFilter = monthFilter === "expense" ? "all" : "expense"; renderMonth(); };
+    $(".sum-card.net").onclick = () => { monthFilter = "all"; renderMonth(); };
     ["input", "change", "blur"].forEach((ev) => $("#entry-date").addEventListener(ev, () => { readPicker(); renderDate(); }));
     $$(".date-chip[data-day]").forEach((c) => (c.onclick = () => setDate(dayStr(Number(c.dataset.day)))));
     $("#backdate-banner").onclick = () => setDate(null);
