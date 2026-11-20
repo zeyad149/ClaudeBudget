@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: income-clients -->
+<!-- build: edit-entries -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Budget" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css?v=8" />
+  <link rel="stylesheet" href="./styles.css?v=9" />
 </head>
 <body>
   <main id="app">
@@ -174,8 +174,47 @@
     <button class="tab" data-view="settings">⚙<span>Settings</span></button>
   </nav>
 
+  <!-- ====================== EDIT SHEET ====================== -->
+  <div class="sheet-backdrop hidden" id="edit-sheet">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+      <div class="sheet-head">
+        <h2 id="edit-title">Edit</h2>
+        <button class="sheet-x" id="edit-close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="type-toggle" id="edit-type">
+        <button class="type-btn" data-type="expense">Expense</button>
+        <button class="type-btn" data-type="income">Income</button>
+      </div>
+
+      <label class="field"><span>Amount (<span id="edit-cur">AED</span>)</span>
+        <input type="text" inputmode="decimal" id="edit-amount" autocomplete="off" />
+      </label>
+
+      <label class="field" id="edit-client-field"><span>Client name</span>
+        <input type="text" id="edit-client" list="client-list" placeholder="e.g. Acme LLC" autocomplete="off" />
+        <datalist id="client-list"></datalist>
+      </label>
+
+      <label class="field" id="edit-cat-field"><span>Category</span>
+        <select id="edit-category"></select>
+      </label>
+
+      <label class="field"><span id="edit-note-label">Note</span>
+        <input type="text" id="edit-note" autocomplete="off" />
+      </label>
+
+      <label class="field"><span>Date</span>
+        <input type="date" id="edit-date" />
+      </label>
+
+      <button class="save-btn" id="edit-save">Save changes</button>
+      <button class="ghost-btn danger sheet-del" id="edit-delete">Delete this entry</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
-  <script src="./app.js?v=8"></script>
+  <script src="./app.js?v=9"></script>
 </body>
 </html>

@@ -520,20 +520,95 @@
           </div>
           <div class="tx-amt ${t.type}">${isInc ? "+" : "−"}${fmt(t.amount)}</div>
           <button class="tx-del" aria-label="Delete">✕</button>`;
-        row.querySelector(".tx-del").onclick = () => deleteTx(t.id);
+        row.querySelector(".tx-del").onclick = (e) => { e.stopPropagation(); deleteTx(t.id); };
+        row.onclick = () => openEdit(t.id);
         list.appendChild(row);
       });
     }
   }
 
   function deleteTx(id) {
-    if (!confirm("Delete this transaction?")) return;
+    if (!confirm("Delete this transaction?")) return false;
     state.transactions = state.transactions.filter((t) => t.id !== id);
     save();
     renderMonth();
     updateSettingsCounts();
     // tell the sheet to remove it too (best-effort)
     if (state.settings.syncUrl) postToSheet({ action: "delete", id });
+    return true;
+  }
+
+  // ---------------- Edit an existing entry ----------------
+  let editing = null; // { id, type }
+
+  function isoToDay(iso) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function setEditType(type) {
+    editing.type = type;
+    const inc = type === "income";
+    $$("#edit-type .type-btn").forEach((b) => b.classList.toggle("active", b.dataset.type === type));
+    $("#edit-client-field").classList.toggle("hidden", !inc);
+    $("#edit-cat-field").classList.toggle("hidden", inc);
+    $("#edit-note-label").textContent = inc ? "What was it for?" : "Note";
+    $("#edit-save").classList.toggle("income", inc);
+    $("#edit-title").textContent = inc ? "Edit income" : "Edit expense";
+  }
+
+  function openEdit(id) {
+    const t = state.transactions.find((x) => x.id === id);
+    if (!t) return;
+    editing = { id, type: t.type };
+    $("#edit-cur").textContent = state.settings.currency;
+    $("#edit-amount").value = t.amount;
+    $("#edit-note").value = t.note || "";
+    $("#edit-date").value = isoToDay(t.date);
+    $("#edit-date").max = todayStr();
+    // income: the client lives in `category`; old income may hold an expense category
+    $("#edit-client").value = t.type === "income" ? clientOf(t) || "" : "";
+    $("#client-list").innerHTML = recentClients().map((n) => `<option value="${escapeHtml(n)}"></option>`).join("");
+    const sel = $("#edit-category");
+    sel.innerHTML = state.categories.map((c) => `<option value="${escapeHtml(c.name)}">${c.emoji} ${escapeHtml(c.name)}</option>`).join("");
+    sel.value = t.type === "expense" && state.categories.some((c) => c.name === t.category) ? t.category : "Other";
+    setEditType(t.type);
+    $("#edit-sheet").classList.remove("hidden");
+    document.body.classList.add("sheet-open");
+  }
+
+  function closeEdit() {
+    editing = null;
+    $("#edit-sheet").classList.add("hidden");
+    document.body.classList.remove("sheet-open");
+  }
+
+  function saveEdit() {
+    const t = editing && state.transactions.find((x) => x.id === editing.id);
+    if (!t) { closeEdit(); return; }
+    const amt = parseFloat(String($("#edit-amount").value).replace(/,/g, ""));
+    if (!amt || amt <= 0) { toast("Enter an amount"); return; }
+
+    t.type = editing.type;
+    t.amount = Math.round(amt * 100) / 100;
+    t.note = $("#edit-note").value.trim();
+    t.category = t.type === "income"
+      ? $("#edit-client").value.trim() || "Income"
+      : $("#edit-category").value || "Other";
+
+    // only move the timestamp if the day actually changed
+    const day = $("#edit-date").value;
+    if (day && day !== isoToDay(t.date) && day <= todayStr()) {
+      const [y, m, d] = day.split("-").map(Number);
+      t.date = new Date(y, m - 1, d, 12, 0, 0).toISOString();
+    }
+
+    t.synced = false;
+    save();
+    syncOne(t); // the Sheet updates the existing row by id
+    closeEdit();
+    renderMonth();
+    toast("Changes saved");
   }
 
   function escapeHtml(s) {
@@ -846,6 +921,13 @@
     $("#note").addEventListener("input", onNoteInput);
     $("#save-btn").onclick = saveEntry;
     $("#client").addEventListener("input", renderClients);
+
+    // edit sheet
+    $$("#edit-type .type-btn").forEach((b) => (b.onclick = () => setEditType(b.dataset.type)));
+    $("#edit-save").onclick = saveEdit;
+    $("#edit-close").onclick = closeEdit;
+    $("#edit-sheet").onclick = (e) => { if (e.target.id === "edit-sheet") closeEdit(); };
+    $("#edit-delete").onclick = () => { const id = editing && editing.id; if (id && deleteTx(id)) closeEdit(); };
 
     // Month view: All / Expenses / Income (the Income and Spent cards toggle too)
     $$("#month-filter .seg-btn").forEach((b) => (b.onclick = () => { monthFilter = b.dataset.f; renderMonth(); }));
