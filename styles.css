@@ -305,3 +305,34 @@ html, body {
 .sum-card.expense.selected { border-color: var(--red); }
 
 .bd-row.income .bd-bar > div { background: var(--green); }
+
+/* ---------- Edit sheet ---------- */
+.tx { cursor: pointer; }
+.tx:active { background: var(--card-2); }
+body.sheet-open { overflow: hidden; }
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 50; background: rgba(2, 6, 23, 0.7);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet-backdrop.hidden { display: none; }
+.sheet {
+  width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto;
+  background: var(--bg-soft); border-radius: 22px 22px 0 0; border-top: 1px solid var(--line);
+  padding: 18px 16px calc(18px + var(--safe-bottom));
+  animation: sheet-up .2s ease-out;
+}
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.sheet-head h2 { margin: 0; font-size: 20px; }
+.sheet-x { background: var(--card-2); border: none; color: var(--muted); width: 34px; height: 34px; border-radius: 50%; font-size: 15px; }
+.field { display: block; margin-bottom: 12px; }
+.field.hidden { display: none; }
+.field > span { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.field input, .field select {
+  width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--text);
+  padding: 13px 14px; border-radius: 12px; font-size: 16px; font-family: inherit;
+  -webkit-appearance: none; appearance: none; min-height: 48px;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--indigo-soft); }
+.sheet .save-btn { margin-top: 6px; }
+.sheet-del { width: 100%; margin-top: 10px; }

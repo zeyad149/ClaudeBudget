@@ -25,6 +25,8 @@ monthly **net** is always front and centre.
   client name (recent clients appear as one-tap buttons) plus what it was
   for. On the Month tab, tap **Income** to see every payment with its date
   and a total per client.
+- **Edit anything** — on the Month tab, tap any entry to change its amount,
+  client name, category, note, date, or switch it between expense and income.
 - **Monthly dashboard** — income vs spent vs net, a category breakdown with
   bars, and your full transaction history (tap ✕ to delete).
 - **Works offline** — everything is stored on your phone; it opens instantly
