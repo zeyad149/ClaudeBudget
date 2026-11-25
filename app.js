@@ -546,8 +546,10 @@
   function renderGroupDetail(items, groupTotal, cur) {
     const subs = {};
     items.forEach((t) => {
-      const label = (t.note || "").trim() || "(no note)";
-      const k = label.toLowerCase();
+      // same note → one combined line; no note → each payment on its own line
+      const note = (t.note || "").trim();
+      const label = note || "No note";
+      const k = note ? note.toLowerCase() : `id:${t.id}`;
       if (!subs[k]) subs[k] = { label, total: 0, txs: [] };
       subs[k].total += t.amount;
       subs[k].txs.push(t);
@@ -563,7 +565,7 @@
       line.className = "bd-sub";
       line.innerHTML = `
         <div class="bd-sub-main">
-          <div class="bd-sub-name">${escapeHtml(sub.label)}${sub.txs.length > 1 ? ` <span class="bd-times">×${sub.txs.length}</span>` : ""}</div>
+          <div class="bd-sub-name${sub.label === "No note" && sub.txs.length === 1 && !sub.txs[0].note ? " no-note" : ""}">${escapeHtml(sub.label)}${sub.txs.length > 1 ? ` <span class="bd-times">×${sub.txs.length}</span>` : ""}</div>
           <div class="bd-sub-dates">${escapeHtml(dates.join(", "))}</div>
         </div>
         <div class="bd-sub-amt">${cur} ${fmt(sub.total)}<span class="pct">${pct}%</span></div>`;
