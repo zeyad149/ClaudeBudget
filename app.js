@@ -336,6 +336,7 @@
   // ---------------- Month view ----------------
   let viewMonth = startOfMonth(new Date());
   let monthFilter = "all"; // Month view list: "all" | "expense" | "income"
+  let openGroups = new Set(); // breakdown rows expanded to show what they're made of
   let dashSel = null; // Compare view: { "YYYY-MM": "A" | "B" }
 
   function startOfMonth(d) {
@@ -466,10 +467,12 @@
     // breakdown: spending by category, or income by client
     const showIncome = monthFilter === "income";
     const groups = {};
+    const groupTxs = {};
     txs.filter((t) => t.type === (showIncome ? "income" : "expense"))
       .forEach((t) => {
         const k = showIncome ? clientOf(t) || "Other income" : t.category;
         groups[k] = (groups[k] || 0) + t.amount;
+        (groupTxs[k] = groupTxs[k] || []).push(t);
       });
     const total = showIncome ? income : expense;
     $("#breakdown-title").textContent = showIncome ? "Income by client" : "Spending by category";
@@ -482,14 +485,24 @@
       rows.forEach(([name, amt]) => {
         const icon = showIncome ? (name === "Other income" ? "💰" : "👤") : catByName(name).emoji;
         const pct = total ? Math.round((amt / total) * 100) : 0;
+        const key = `${monthFilter}|${name}`;
+        const open = openGroups.has(key);
+        const items = groupTxs[name];
         const row = document.createElement("div");
-        row.className = "bd-row" + (showIncome ? " income" : "");
+        row.className = "bd-row" + (showIncome ? " income" : "") + (open ? " open" : "");
         row.innerHTML = `
-          <div class="bd-head">
-            <span>${icon} ${escapeHtml(name)}</span>
-            <span><strong>${cur} ${fmt(amt)}</strong> <span class="pct">${pct}%</span></span>
-          </div>
-          <div class="bd-bar"><div style="width:${pct}%"></div></div>`;
+          <button class="bd-toggle" aria-expanded="${open}">
+            <div class="bd-head">
+              <span>${icon} ${escapeHtml(name)} <span class="bd-count">${items.length}</span></span>
+              <span><strong>${cur} ${fmt(amt)}</strong> <span class="pct">${pct}%</span> <span class="bd-chev">›</span></span>
+            </div>
+            <div class="bd-bar"><div style="width:${pct}%"></div></div>
+          </button>`;
+        row.querySelector(".bd-toggle").onclick = () => {
+          if (open) openGroups.delete(key); else openGroups.add(key);
+          renderMonth();
+        };
+        if (open) row.appendChild(renderGroupDetail(items, amt, cur));
         bd.appendChild(row);
       });
     }
@@ -525,6 +538,44 @@
         list.appendChild(row);
       });
     }
+  }
+
+  // What a breakdown row is made of: entries grouped by what was typed
+  // (case-insensitive), biggest first. Tapping a line opens it for editing,
+  // e.g. to move a one-off "Other" expense into a proper category.
+  function renderGroupDetail(items, groupTotal, cur) {
+    const subs = {};
+    items.forEach((t) => {
+      const label = (t.note || "").trim() || "(no note)";
+      const k = label.toLowerCase();
+      if (!subs[k]) subs[k] = { label, total: 0, txs: [] };
+      subs[k].total += t.amount;
+      subs[k].txs.push(t);
+    });
+    const wrap = document.createElement("div");
+    wrap.className = "bd-detail";
+    Object.values(subs).sort((a, b) => b.total - a.total).forEach((sub) => {
+      const dates = sub.txs
+        .slice().sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map((t) => new Date(t.date).toLocaleDateString("en-US", { day: "numeric", month: "short" }));
+      const pct = groupTotal ? Math.round((sub.total / groupTotal) * 100) : 0;
+      const line = document.createElement("button");
+      line.className = "bd-sub";
+      line.innerHTML = `
+        <div class="bd-sub-main">
+          <div class="bd-sub-name">${escapeHtml(sub.label)}${sub.txs.length > 1 ? ` <span class="bd-times">×${sub.txs.length}</span>` : ""}</div>
+          <div class="bd-sub-dates">${escapeHtml(dates.join(", "))}</div>
+        </div>
+        <div class="bd-sub-amt">${cur} ${fmt(sub.total)}<span class="pct">${pct}%</span></div>`;
+      // one entry → edit it; several → open the most recent
+      line.onclick = () => openEdit(sub.txs.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0].id);
+      wrap.appendChild(line);
+    });
+    const hint = document.createElement("p");
+    hint.className = "bd-hint";
+    hint.textContent = "Tap an item to edit it or move it to another category.";
+    wrap.appendChild(hint);
+    return wrap;
   }
 
   function deleteTx(id) {
@@ -939,8 +990,8 @@
     $("#backdate-banner").onclick = () => setDate(null);
 
     // month nav
-    $("#prev-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1); renderMonth(); };
-    $("#next-month").onclick = () => { viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1); renderMonth(); };
+    $("#prev-month").onclick = () => { openGroups.clear(); viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1); renderMonth(); };
+    $("#next-month").onclick = () => { openGroups.clear(); viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1); renderMonth(); };
 
     // starting balance
     $("#balance-hero").onclick = () => {
