@@ -358,6 +358,7 @@ body.sheet-open { overflow: hidden; }
 .bd-sub:active { background: var(--card-2); }
 .bd-sub-main { min-width: 0; }
 .bd-sub-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.bd-sub-name.no-note { color: var(--muted); font-style: italic; font-weight: 500; }
 .bd-times { color: var(--muted); font-size: 13px; font-weight: 600; }
 .bd-sub-dates { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .bd-sub-amt { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
